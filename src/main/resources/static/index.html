@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Chat</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f2f2f2;
+    }
+
+    .chat-container {
+      width: 400px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    #messages {
+      list-style-type: none;
+      padding: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      border-top: 1px solid #ddd;
+      margin-top: 20px;
+    }
+
+    #messages li {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 70%;
+      clear: both;
+    }
+
+    .message-sent {
+      background-color: #dcf8c6;
+      text-align: right;
+      margin-left: auto;
+    }
+
+    .message-received {
+      background-color: #f1f0f0;
+      text-align: left;
+      margin-right: auto;
+    }
+
+    .input-row {
+      display: flex;
+      margin-top: 20px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 5px;
+    }
+
+    .input-row button {
+      padding: 8px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .input-row button:disabled {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+<div class="chat-container">
+  <h2>WebSocket Chat</h2>
+  <input type="text" id="username" placeholder="Enter your name"/>
+  <button onclick="connect()">Connect</button>
+  <button onclick="disconnect()">Disconnect</button>
+
+  <ul id="messages"></ul>
+
+  <div class="input-row">
+    <input type="text" id="message" placeholder="Write a message"/>
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+  let stompClient = null;
+  let currentUsername = null;
+
+  function connect() {
+    currentUsername = document.getElementById("username").value.trim();
+    if (!currentUsername) {
+      alert("Please enter your name to connect");
+      return;
+    }
+
+    const socket = new SockJS('/ws');
+    stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+      console.log('Connected: ' + frame);
+      stompClient.subscribe('/topic/public', function (message) {
+        showMessage(JSON.parse(message.body));
+      });
+    });
+  }
+
+  function disconnect() {
+    if (stompClient !== null) {
+      stompClient.disconnect();
+      console.log("Disconnected");
+    }
+  }
+
+  function sendMessage() {
+    const messageContent = document.getElementById("message").value.trim();
+
+    if (messageContent && stompClient && currentUsername) {
+      const chatMessage = {
+        sender: currentUsername,
+        content: messageContent,
+        type: 'CHAT'
+      };
+      stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
+      document.getElementById("message").value = '';
+    }
+  }
+
+  function showMessage(message) {
+    const messages = document.getElementById("messages");
+    const messageElement = document.createElement("li");
+
+    // Apply styles based on whether the message is from the current user or another user
+    if (message.sender === currentUsername) {
+      messageElement.classList.add("message-sent");
+    } else {
+      messageElement.classList.add("message-received");
+    }
+
+    messageElement.textContent = message.sender + ": " + message.content;
+    messages.appendChild(messageElement);
+
+    // Auto-scroll to the latest message
+    messages.scrollTop = messages.scrollHeight;
+  }
+</script>
+</body>
+</html>
+
