@@ -1,0 +1,17 @@
+{
+
+  "provider": "github",
+
+  "repositories": [
+
+    {
+
+      "name": "spring-journey",
+
+      "owner": "oanhhkim"
+
+    }
+
+  ]
+
+}

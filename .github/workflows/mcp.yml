@@ -1,0 +1,26 @@
+name: GitHub MCP Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  mcp-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up MCP
+        env:
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.MCP_TOKEN }}
+        run: |
+          echo "Configuring MCP..."
+          # Kiểm tra Docker đã được cài đặt
+          if ! command -v docker &> /dev/null; then
+              echo "Docker chưa được cài đặt. Đang cài đặt Docker..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+          fi
+          # Chạy MCP server
+          docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server
